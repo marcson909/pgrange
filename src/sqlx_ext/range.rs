@@ -1,4 +1,4 @@
-use sqlx::encode::{self, IsNull};
+use sqlx::encode::IsNull;
 use sqlx::error::BoxDynError;
 use sqlx::postgres::{PgArgumentBuffer, PgHasArrayType, PgTypeInfo, PgTypeKind, PgValueRef};
 use sqlx::{Decode, Encode, Postgres, Type};

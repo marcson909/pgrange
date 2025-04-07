@@ -2,8 +2,8 @@ mod range;
 
 pub use range::PgRange;
 
-// #[cfg(feature = "postgres")]
-// mod postgres_ext;
+#[cfg(feature = "postgres")]
+mod postgres_ext;
 
 #[cfg(feature = "sqlx")]
 mod sqlx_ext;
