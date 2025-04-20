@@ -5,8 +5,8 @@ use sqlx::{Decode, Encode, Postgres, Type};
 use std::fmt::Debug;
 use std::ops::Bound;
 
+use crate::PgRange;
 use bitflags::bitflags;
-
 // https://github.com/postgres/postgres/blob/2f48ede080f42b97b594fb14102c82ca1001b80c/src/include/utils/rangetypes.h#L35-L44
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -21,8 +21,6 @@ bitflags! {
         const CONTAIN_EMPTY = 0x80; // internal
     }
 }
-
-use crate::PgRange;
 
 impl<T> From<PgRange<T>> for sqlx::postgres::types::PgRange<T> {
     fn from(v: PgRange<T>) -> Self {
@@ -42,6 +40,35 @@ impl<T> From<sqlx::postgres::types::PgRange<T>> for PgRange<T> {
     }
 }
 
+impl Type<Postgres> for PgRange<bool> {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_boolrange")
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        range_compatible::<bool>(ty)
+    }
+}
+
+impl Type<Postgres> for PgRange<i8> {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_int1range")
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        range_compatible::<i8>(ty)
+    }
+}
+
+impl Type<Postgres> for PgRange<i16> {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_int2range")
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        range_compatible::<i16>(ty)
+    }
+}
 
 impl Type<Postgres> for PgRange<i32> {
     fn type_info() -> PgTypeInfo {
@@ -50,6 +77,26 @@ impl Type<Postgres> for PgRange<i32> {
 
     fn compatible(ty: &PgTypeInfo) -> bool {
         range_compatible::<i32>(ty)
+    }
+}
+
+impl Type<Postgres> for PgRange<f32> {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_float4range")
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        range_compatible::<f32>(ty)
+    }
+}
+
+impl Type<Postgres> for PgRange<f64> {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_float8range")
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        range_compatible::<f64>(ty)
     }
 }
 
@@ -97,6 +144,17 @@ impl Type<Postgres> for PgRange<chrono::NaiveDate> {
 }
 
 #[cfg(feature = "with-chrono")]
+impl Type<Postgres> for PgRange<chrono::NaiveTime> {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_naivetimerange")
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        range_compatible::<chrono::NaiveTime>(ty)
+    }
+}
+
+#[cfg(feature = "with-chrono")]
 impl Type<Postgres> for PgRange<chrono::NaiveDateTime> {
     fn type_info() -> PgTypeInfo {
         PgTypeInfo::with_name("tsrange")
@@ -126,6 +184,17 @@ impl Type<Postgres> for PgRange<time::Date> {
 
     fn compatible(ty: &PgTypeInfo) -> bool {
         range_compatible::<time::Date>(ty)
+    }
+}
+
+#[cfg(feature = "time")]
+impl Type<Postgres> for PgRange<time::Time> {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_naivetimerange")
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        range_compatible::<time::Time>(ty)
     }
 }
 
@@ -221,7 +290,7 @@ impl PgHasArrayType for PgRange<time::OffsetDateTime> {
 
 impl<'q, T> Encode<'q, Postgres> for PgRange<T>
 where
-    T: Encode<'q, Postgres> + Copy,
+    T: Encode<'q, Postgres>,
 {
     fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, BoxDynError> {
         // https://github.com/postgres/postgres/blob/2f48ede080f42b97b594fb14102c82ca1001b80c/src/backend/utils/adt/rangetypes.c#L245
@@ -254,7 +323,6 @@ where
     }
 }
 
-
 impl<T> Decode<'_, Postgres> for PgRange<T>
 where
     T: Type<Postgres> + for<'a> Decode<'a, Postgres>,
@@ -264,7 +332,6 @@ where
         Ok(PgRange::from(sqlx_range))
     }
 }
-
 
 fn range_compatible<E: Type<Postgres>>(ty: &PgTypeInfo) -> bool {
     // we require the declared type to be a _range_ with an

@@ -1549,7 +1549,6 @@ dependencies = [
  "postgres-types",
  "rust_decimal",
  "serde",
- "serde_json",
  "sqlx",
  "time",
 ]
