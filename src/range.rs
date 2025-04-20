@@ -1,4 +1,5 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
+use serde_json::json;
 use std::fmt::{self, Display, Formatter};
 use std::ops::{Bound, Range, RangeBounds, RangeFrom, RangeInclusive, RangeTo, RangeToInclusive};
 
@@ -23,10 +24,32 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Deserialize)]
 pub struct PgRange<T> {
     pub start: Bound<T>,
     pub end: Bound<T>,
+}
+
+impl<T: Serialize + Display> Serialize for PgRange<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+
+        let json_representation = serde_json::json!({
+            "start": match &self.start {
+                std::ops::Bound::Unbounded => serde_json::Value::Null,
+                std::ops::Bound::Included(v) => json!({"Included": v.to_string()}),
+                std::ops::Bound::Excluded(v) => json!({"Excluded": v.to_string()}),
+            },
+            "end": match &self.end {
+                std::ops::Bound::Unbounded => serde_json::Value::Null,
+                std::ops::Bound::Included(v) => json!({"Included": v.to_string()}),
+                std::ops::Bound::Excluded(v) => json!({"Excluded": v.to_string()}),
+            }
+        });
+        json_representation.serialize(serializer)
+    }
 }
 
 impl<T> From<[Bound<T>; 2]> for PgRange<T> {

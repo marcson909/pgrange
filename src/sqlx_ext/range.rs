@@ -3,7 +3,6 @@ use sqlx::error::BoxDynError;
 use sqlx::postgres::{PgArgumentBuffer, PgHasArrayType, PgTypeInfo, PgTypeKind, PgValueRef};
 use sqlx::{Decode, Encode, Postgres, Type};
 use std::fmt::Debug;
-use std::ops::Bound;
 
 use crate::PgRange;
 use bitflags::bitflags;
@@ -42,7 +41,7 @@ impl<T> From<sqlx::postgres::types::PgRange<T>> for PgRange<T> {
 
 impl Type<Postgres> for PgRange<bool> {
     fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_boolrange")
+        PgTypeInfo::with_name(r#""_boolrange""#)
     }
 
     fn compatible(ty: &PgTypeInfo) -> bool {
@@ -52,7 +51,7 @@ impl Type<Postgres> for PgRange<bool> {
 
 impl Type<Postgres> for PgRange<i8> {
     fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_int1range")
+        PgTypeInfo::with_name(r#""_int1range""#)
     }
 
     fn compatible(ty: &PgTypeInfo) -> bool {
@@ -62,7 +61,7 @@ impl Type<Postgres> for PgRange<i8> {
 
 impl Type<Postgres> for PgRange<i16> {
     fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_int2range")
+        PgTypeInfo::with_name(r#""_int2range""#)
     }
 
     fn compatible(ty: &PgTypeInfo) -> bool {
@@ -82,7 +81,7 @@ impl Type<Postgres> for PgRange<i32> {
 
 impl Type<Postgres> for PgRange<f32> {
     fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_float4range")
+        PgTypeInfo::with_name(r#""_float4range""#)
     }
 
     fn compatible(ty: &PgTypeInfo) -> bool {
@@ -92,7 +91,7 @@ impl Type<Postgres> for PgRange<f32> {
 
 impl Type<Postgres> for PgRange<f64> {
     fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_float8range")
+        PgTypeInfo::with_name(r#""_float8range""#)
     }
 
     fn compatible(ty: &PgTypeInfo) -> bool {
@@ -146,7 +145,7 @@ impl Type<Postgres> for PgRange<chrono::NaiveDate> {
 #[cfg(feature = "with-chrono")]
 impl Type<Postgres> for PgRange<chrono::NaiveTime> {
     fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_naivetimerange")
+        PgTypeInfo::with_name(r#""_naivetimerange""#)
     }
 
     fn compatible(ty: &PgTypeInfo) -> bool {
@@ -190,7 +189,7 @@ impl Type<Postgres> for PgRange<time::Date> {
 #[cfg(feature = "time")]
 impl Type<Postgres> for PgRange<time::Time> {
     fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_naivetimerange")
+        PgTypeInfo::with_name(r#""_naivetimerange""#)
     }
 
     fn compatible(ty: &PgTypeInfo) -> bool {
@@ -222,69 +221,77 @@ impl Type<Postgres> for PgRange<time::OffsetDateTime> {
 
 impl PgHasArrayType for PgRange<i32> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_int4range")
+        PgTypeInfo::array_of("int4range")
     }
 }
 
 impl PgHasArrayType for PgRange<i64> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_int8range")
+        PgTypeInfo::array_of("int8range")
     }
 }
 
 #[cfg(feature = "with-bigdecimal")]
 impl PgHasArrayType for PgRange<bigdecimal::BigDecimal> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_numrange")
+        PgTypeInfo::array_of("numrange")
+
     }
 }
 
 #[cfg(feature = "with-rust_decimal")]
 impl PgHasArrayType for PgRange<rust_decimal::Decimal> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_numrange")
+        PgTypeInfo::array_of("numrange")
+
     }
 }
 
 #[cfg(feature = "with-chrono")]
 impl PgHasArrayType for PgRange<chrono::NaiveDate> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_daterange")
+        PgTypeInfo::array_of("daterange")
+
     }
 }
 
 #[cfg(feature = "with-chrono")]
 impl PgHasArrayType for PgRange<chrono::NaiveDateTime> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_tsrange")
+        PgTypeInfo::array_of("tsrange")
+
     }
 }
 
 #[cfg(feature = "with-chrono")]
 impl<Tz: chrono::TimeZone> PgHasArrayType for PgRange<chrono::DateTime<Tz>> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_tstzrange")
+        PgTypeInfo::array_of("tstzrange")
+
     }
 }
 
 #[cfg(feature = "time")]
 impl PgHasArrayType for PgRange<time::Date> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_daterange")
+        PgTypeInfo::array_of("daterange")
+
     }
 }
 
 #[cfg(feature = "time")]
 impl PgHasArrayType for PgRange<time::PrimitiveDateTime> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_tsrange")
+        PgTypeInfo::array_of("tsrange")
+
     }
 }
 
 #[cfg(feature = "time")]
 impl PgHasArrayType for PgRange<time::OffsetDateTime> {
     fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_tstzrange")
+        PgTypeInfo::array_of("tstzrange")
+
     }
 }
 
@@ -293,33 +300,13 @@ where
     T: Encode<'q, Postgres>,
 {
     fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, BoxDynError> {
-        // https://github.com/postgres/postgres/blob/2f48ede080f42b97b594fb14102c82ca1001b80c/src/backend/utils/adt/rangetypes.c#L245
-        let mut flags = RangeFlags::empty();
 
-        flags |= match self.start {
-            Bound::Included(_) => RangeFlags::LB_INC,
-            Bound::Unbounded => RangeFlags::LB_INF,
-            Bound::Excluded(_) => RangeFlags::empty(),
+        let sqlx_range = sqlx::postgres::types::PgRange {
+            start: self.start.as_ref(),
+            end: self.end.as_ref(),
         };
 
-        flags |= match self.end {
-            Bound::Included(_) => RangeFlags::UB_INC,
-            Bound::Unbounded => RangeFlags::UB_INF,
-            Bound::Excluded(_) => RangeFlags::empty(),
-        };
-
-        buf.push(flags.bits());
-
-        if let Bound::Included(v) | Bound::Excluded(v) = &self.start {
-            let _ = T::encode_by_ref(v, buf)?;
-        }
-
-        if let Bound::Included(v) | Bound::Excluded(v) = &self.end {
-            let _ = T::encode_by_ref(v, buf)?;
-        }
-
-        // ranges are themselves never null
-        Ok(IsNull::No)
+        sqlx_range.encode_by_ref(buf)
     }
 }
 
